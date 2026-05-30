@@ -56,6 +56,11 @@ public class PatientService(MasterContext ctx) : IPatientService
 
 	public async Task<AddBedAssignmentDto> AddAsync(AddBedAssignmentDto request, string id)
 	{
+		if (await ctx.BedTypes.AnyAsync(bt => bt.Name == request.BedType) == false)
+			throw new ConflictException($"Bed type \"{request.BedType}\" unknown.");
+		if (await ctx.Wards.AnyAsync(w => w.Name == request.Ward) == false)
+			throw new ConflictException($"Ward \"{request.Ward}\" does not exist.");
+		
 		if (await ctx.Beds
 			    .Where(b => b.BedType.Name == request.BedType)
 			    .Where(b => b.Room.Ward.Name == request.Ward)
@@ -63,7 +68,7 @@ public class PatientService(MasterContext ctx) : IPatientService
 				    .Any(ba => ba.From <= request.From && (ba.To >= request.From || ba.To == null) ||
 				                 ba.From <= request.To && (ba.To >= request.From || ba.To == null) )))
 		{
-			throw new ConflictException("No free bed found");
+			throw new ConflictException($"No free bed of type \"{request.BedType}\" in {request.Ward} ward found within given time constraints.");
 		}
 
 		var bed = await ctx.Beds
