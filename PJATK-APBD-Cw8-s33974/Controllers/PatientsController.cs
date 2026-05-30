@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using PJATK_APBD_Cw8_s33974.DTOs;
+using PJATK_APBD_Cw8_s33974.Exceptions;
 using PJATK_APBD_Cw8_s33974.Services;
 
 namespace PJATK_APBD_Cw8_s33974.Controllers;
@@ -13,11 +14,19 @@ public class PatientsController(IPatientService service) : Controller
 	{
 		return Ok(await service.GetAllAsync(search));
 	}
-	[HttpPost]
-	public async Task<IActionResult> Add([FromBody] AddBedAssignmentDto request)
+	// muszę zastosować {id} zamiast {id:int}, ponieważ kluczem głównym pacjenta jest PESEL
+	// chyba, że źle zrozumiałem polecenie
+	[HttpPost("{id}/bedassignments")]
+	public async Task<IActionResult> Add([FromBody] AddBedAssignmentDto request, string id)
 	{
-		//var pcResponseDto = await service.AddAsync(request);
-		//return CreatedAtAction(nameof(GetById), new { id = pcResponseDto.Id }, pcResponseDto);
-		return Ok(await service.AddAsync(request));
+		try
+		{
+			await service.AddAsync(request, id);
+			return Created();
+		}
+		catch (ConflictException e)
+		{
+			return NotFound(e.Message);
+		}
 	}
 }

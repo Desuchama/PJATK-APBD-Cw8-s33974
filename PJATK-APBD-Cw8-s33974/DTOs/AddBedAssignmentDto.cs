@@ -1,3 +1,13 @@
-﻿namespace PJATK_APBD_Cw8_s33974.DTOs;
+﻿using System.ComponentModel.DataAnnotations;
 
-public record AddBedAssignmentDto();
+namespace PJATK_APBD_Cw8_s33974.DTOs;
+
+public record AddBedAssignmentDto(
+	[Required]
+	DateTime From,
+	DateTime? To,
+	[Required]
+	string BedType,
+	[Required]
+	string Ward
+);

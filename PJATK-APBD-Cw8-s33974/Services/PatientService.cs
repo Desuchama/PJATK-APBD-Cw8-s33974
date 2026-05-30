@@ -1,5 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using PJATK_APBD_Cw8_s33974.DTOs;
+using PJATK_APBD_Cw8_s33974.Entities;
+using PJATK_APBD_Cw8_s33974.Exceptions;
 using PJATK_APBD_Cw8_s33974.Infrastructure;
 
 namespace PJATK_APBD_Cw8_s33974.Services;
@@ -51,8 +54,43 @@ public class PatientService(MasterContext ctx) : IPatientService
 			.ToListAsync();
 	}
 
-	public async Task<AddBedAssignmentDto> AddAsync(AddBedAssignmentDto request)
+	public async Task<AddBedAssignmentDto> AddAsync(AddBedAssignmentDto request, string id)
 	{
-		throw new NotImplementedException();
+		if (await ctx.Beds
+			    .Where(b => b.BedType.Name == request.BedType)
+			    .Where(b => b.Room.Ward.Name == request.Ward)
+			    .AllAsync(b => b.BedAssignments
+				    .Any(ba => ba.From <= request.From && (ba.To >= request.From || ba.To == null) ||
+				                 ba.From <= request.To && (ba.To >= request.From || ba.To == null) )))
+		{
+			throw new ConflictException("No free bed found");
+		}
+
+		var bed = await ctx.Beds
+			.Where(b => b.BedType.Name == request.BedType)
+			.Where(b => b.Room.Ward.Name == request.Ward)
+			.FirstOrDefaultAsync(b => b.BedAssignments.Any(ba =>
+				!(ba.From <= request.From && ba.To >= request.From ||
+				  ba.From <= request.To && ba.To >= request.From)));
+
+		// if (bed == null)
+		// {
+		// 	throw new ConflictException("No free bed found");
+		// }
+		// else
+		// {
+			var assignment = new BedAssignment()
+			{	
+				PatientPesel = id,
+				BedId = bed.Id,
+				From = request.From,
+				To = request.To,
+			};
+			await ctx.BedAssignments.AddAsync(assignment);
+		// }
+		
+		await ctx.SaveChangesAsync();
+		
+		return null;
 	}
 }
